@@ -4,7 +4,8 @@
             [hiccup.form :refer [form-to password-field submit-button file-upload]]
             [ring.adapter.jetty :refer [run-jetty]]
             [ring.middleware.params :refer [wrap-params]]
-            [ring.util.response :refer [resource-response]]
+            [ring.util.response :refer [resource-response content-type]]
+            [ring.util.mime-type :refer [ext-mime-type]]
             [ring.util.io :refer [piped-input-stream]])
   (:import [java.util.concurrent SynchronousQueue]
            [java.util.zip ZipOutputStream ZipEntry]
@@ -40,7 +41,8 @@
              [:meta {:name "viewport"
                      :content "width=device-width, height=device-height, initial-scale=1.0, minimum-scale=1.0"}]
              [:link {:rel "stylesheet"
-                     :href "/asset/main.css"}]
+                     :href "/asset/main.css"
+                     :type "text/css"}]
              (when (:refresh? opts)
                [:meta {:http-equiv "refresh"
                        :content "1"}])]
@@ -170,7 +172,9 @@
            "main.css"
            "vendor/no-sleep.min.js"
            "vendor/qrcode.min.js"} file)
-      (resource-response file {:root "public"})
+      (content-type
+        (resource-response file {:root "public"})
+        (ext-mime-type file))
       (page [:p "Not here."] {:status 404}))))
 
 (defn app [request]
