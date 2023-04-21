@@ -1,0 +1,37 @@
+body {
+    max-width: 25em;
+    padding: 1em;
+    margin: auto;
+    font-family: sans-serif;
+}
+
+.home {
+    display: grid;
+    gap: 1em;
+    grid-template-rows: 1fr 3em;
+    grid-template-columns: 1fr 1fr;
+}
+
+.home input[type=password] {
+    grid-column: span 2;
+    visibility: hidden;
+}
+
+h2 {
+    text-align: center;
+}
+
+progress {
+    display: block;
+    width: 100%;
+}
+
+progress[value="0"] {
+    visibility: hidden;
+}
+
+.upload-form input {
+    display: block;
+    width: 100%;
+    height: 3em;
+}

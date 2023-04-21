@@ -1,0 +1,15 @@
+{:deps
+ {org.clojure/clojure {:mvn/version "1.11.1"}
+  ring/ring-core {:mvn/version "1.9.4"}
+  ring/ring-jetty-adapter {:mvn/version "1.9.4"}
+  hiccup/hiccup {:mvn/version "1.0.5"}
+  dev.baecher.multipart/streaming-multipart-parser {:mvn/version "0.9.7"}}
+ :paths ["src" "resources"]
+ :aliases {:nrepl
+           {:extra-deps
+            {cider/cider-nrepl {:mvn/version "0.26.0"}
+             ring/ring-devel {:mvn/version "1.9.4"}}
+            :main-opts ["-m" "nrepl.cmdline" "--middleware" "[cider.nrepl/cider-middleware]"]}
+           :build
+           {:deps {io.github.clojure/tools.build {:mvn/version "0.9.3"}}
+            :ns-default build}}}
