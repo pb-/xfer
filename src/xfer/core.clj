@@ -6,11 +6,15 @@
             [ring.middleware.params :refer [wrap-params]]
             [ring.util.response :refer [resource-response content-type]]
             [ring.util.mime-type :refer [ext-mime-type]]
-            [ring.util.io :refer [piped-input-stream]])
+            [ring.util.io :refer [piped-input-stream]]
+            [xfer.rate-limit :refer [wrap-token-bucket]])
   (:import [java.util.concurrent SynchronousQueue]
            [java.util.zip ZipOutputStream ZipEntry]
            [dev.baecher.multipart StreamingMultipartParser])
   (:gen-class))
+
+(def login-interval-sec 60)
+(def max-burst-logins 10)
 
 (defonce app-state (atom {}))
 
@@ -48,29 +52,40 @@
                        :content "1"}])]
             [:body body])}))
 
+(defn home-form [message]
+  (page
+    (form-to
+      {:class "home"}
+      [:post "/"]
+      (password-field {:placeholder "Password"} "password")
+      (submit-button {:name "send"} "Send data")
+      (submit-button {:name "receive"} "Receive data"))))
+
+(defn handle-form [request]
+  (let [params (:form-params request)
+        status (cond
+                 (params "send") :waiting-for-receiver
+                 (params "receive") :waiting-for-sender)]
+    (if false
+      (home-form "Password is no good")
+      (let [id (generate-id)
+            path (case status
+                   :waiting-for-receiver "s"
+                   :waiting-for-sender "r")]
+        (swap! app-state assoc id {:id id
+                                   :started-at (System/currentTimeMillis)
+                                   :status status})
+        {:status 302
+         :headers {"Location" (str "/" path "/" id)}}))))
+
+(def handle-form-rate-limited
+  ((wrap-token-bucket (* 1000 login-interval-sec) max-burst-logins) handle-form))
+
 (defn home [request]
   (if (empty? (:uri request))
-    (let [params (:form-params request)
-          status (cond
-                   (params "send") :waiting-for-receiver
-                   (params "receive") :waiting-for-sender
-                   :else :decide)]
-      (if (= :decide status)
-        (page (form-to
-                {:class "home"}
-                [:post "/"]
-                (password-field {:placeholder "Password"} "password")
-                (submit-button {:name "send"} "Send data")
-                (submit-button {:name "receive"} "Receive data")))
-        (let [id (generate-id)
-              path (case status
-                     :waiting-for-receiver "s"
-                     :waiting-for-sender "r")]
-          (swap! app-state assoc id {:id id
-                                     :started-at (System/currentTimeMillis)
-                                     :status status})
-          {:status 302
-           :headers {"Location" (str "/" path "/" id)}})))
+    (if (= :post (:request-method request))
+      (handle-form-rate-limited request)
+      (home-form nil))
     (page [:p "Not here"] {:status 404})))
 
 
