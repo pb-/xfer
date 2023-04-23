@@ -18,7 +18,7 @@
 (defn parseHexDigits [s]
   (byte-array (drop 1 (.toByteArray (BigInteger. s 16)))))
 
-(def login-password-hash (parseHexDigits (or (System/getenv "LOGIN_PASSWORD_HASH") "")))
+(def login-password-hash (parseHexDigits (or (System/getenv "LOGIN_PASSWORD_HASH") "0")))
 
 (def login-interval-sec 60)
 (def max-burst-logins 10)
