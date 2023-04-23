@@ -10,8 +10,14 @@
             [xfer.rate-limit :refer [wrap-token-bucket]])
   (:import [java.util.concurrent SynchronousQueue]
            [java.util.zip ZipOutputStream ZipEntry]
+           [java.security MessageDigest]
            [dev.baecher.multipart StreamingMultipartParser])
   (:gen-class))
+
+(defn parseHexDigits [s]
+  (byte-array (drop 1 (.toByteArray (BigInteger. s 16)))))
+
+(def login-password-hash (parseHexDigits (System/getenv "LOGIN_PASSWORD_HASH")))
 
 (def login-interval-sec 60)
 (def max-burst-logins 10)
@@ -28,6 +34,9 @@
 (defn generate-id []
   (let [alphabet "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"]
     (join (repeatedly 12 #(rand-nth alphabet)))))
+
+(defn sha256 [s]
+  (.digest (MessageDigest/getInstance "SHA-256") (.getBytes s "UTF-8")))
 
 (defn match-route [prefix request]
   (let [uri (:uri request)]
@@ -57,17 +66,20 @@
     (form-to
       {:class "home"}
       [:post "/"]
-      (password-field {:placeholder "Password"} "password")
+      (password-field {:placeholder "Password"
+                       :autofocus "autofocus"} "password")
+      (when message
+        [:p.message message])
       (submit-button {:name "send"} "Send data")
       (submit-button {:name "receive"} "Receive data"))))
 
 (defn handle-form [request]
   (let [params (:form-params request)
+        password (params "password")
         status (cond
                  (params "send") :waiting-for-receiver
                  (params "receive") :waiting-for-sender)]
-    (if false
-      (home-form "Password is no good")
+    (if (MessageDigest/isEqual login-password-hash (sha256 password))
       (let [id (generate-id)
             path (case status
                    :waiting-for-receiver "s"
@@ -76,7 +88,8 @@
                                    :started-at (System/currentTimeMillis)
                                    :status status})
         {:status 302
-         :headers {"Location" (str "/" path "/" id)}}))))
+         :headers {"Location" (str "/" path "/" id)}})
+      (home-form "Password is no good"))))
 
 (def handle-form-rate-limited
   ((wrap-token-bucket (* 1000 login-interval-sec) max-burst-logins) handle-form))

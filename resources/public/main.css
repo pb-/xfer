@@ -14,7 +14,12 @@ body {
 
 .home input[type=password] {
     grid-column: span 2;
-    visibility: hidden;
+}
+
+.home .message {
+    color: firebrick;
+    text-align: center;
+    grid-column: span 2;
 }
 
 h2 {
