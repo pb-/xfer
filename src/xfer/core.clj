@@ -11,6 +11,7 @@
   (:import [java.util.concurrent SynchronousQueue]
            [java.util.zip ZipOutputStream ZipEntry]
            [java.security MessageDigest]
+           [java.time Instant]
            [dev.baecher.multipart StreamingMultipartParser])
   (:gen-class))
 
@@ -206,13 +207,18 @@
       (page [:p "Not here."] {:status 404}))))
 
 (defn app [request]
-  (println ((:headers request) "x-forwarded-for") (:uri request) ((:headers request) "user-agent"))
-  (swap! app-state collect-garbage (System/currentTimeMillis))
-  (condp match-route request
-    "/asset/" :>> asset
-    "/r/" :>> receiver
-    "/s/" :>> sender
-    "/" :>> (wrap-params home)))
+  (let [now (Instant/now)]
+    (println
+      (str now)
+      ((:headers request) "x-forwarded-for")
+      (:uri request)
+      ((:headers request) "user-agent"))
+    (swap! app-state collect-garbage (inst-ms now))
+    (condp match-route request
+      "/asset/" :>> asset
+      "/r/" :>> receiver
+      "/s/" :>> sender
+      "/" :>> (wrap-params home))))
 
 (defn -main []
   (run-jetty app {:port 8080 :send-server-version? false}))
