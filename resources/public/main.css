@@ -8,7 +8,7 @@ body {
 .home {
     display: grid;
     gap: 1em;
-    grid-template-rows: 1fr 3em;
+    grid-template-rows: 1fr 3em 3em;
     grid-template-columns: 1fr 1fr;
 }
 
