@@ -117,9 +117,11 @@
    [:script {:src "/asset/upload.js"}]])
 
 (defn handle-upload [request]
-  (let [done (promise)]
+  (let [done (promise)
+        multiple? (= "multiple" (:query-string request))]
     (swap! app-state update (:uri request) merge {:status :data-ready
                                                   :done done
+                                                  :multiple? multiple?
                                                   :input-stream (:body request)})
     (let [success? (deref done (* 10 60 1000) false)]
       (swap! app-state dissoc (:uri request))
@@ -127,7 +129,7 @@
         (page [:p "All done!"])
         (page [:p "Timed out."] {:status 400})))))
 
-(defn handle-download [request transfer]
+(defn handle-download-multiple [request transfer]
   {:status 200
    :headers {"Content-Disposition" (str "attachment; filename=\"transfer-" (:id transfer) ".zip\"")}
    :body (piped-input-stream
@@ -142,6 +144,23 @@
                    (.closeEntry zip-stream)))
                (.finish zip-stream)
                (deliver (:done transfer) true))))})
+
+(defn handle-download-single [request transfer]
+  (let [parser (StreamingMultipartParser. (:input-stream transfer))
+        part (.next parser)
+        filename (.getFilename (.getHeaders part))
+        input-stream (.getInputStream part)]
+    {:status 200
+     :headers {"Content-Disposition" (str "attachment; filename=\"" filename "\"")}
+     :body (piped-input-stream
+             (fn [output-stream]
+               (.transferTo input-stream output-stream)
+               (deliver (:done transfer) true)))}))
+
+(defn handle-download [request transfer]
+  (if (:multiple? transfer)
+    (handle-download-multiple request transfer)
+    (handle-download-single request transfer)))
 
 (defn scan [transfer]
   (let [path (case  (:status transfer)

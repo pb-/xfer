@@ -60,7 +60,7 @@ form.addEventListener('submit', (e) => {
       noSleep.disable();
     }
   });
-  request.open('POST', window.location.pathname);
+  request.open('POST', window.location.pathname + (files.length > 1 ? '?multiple' : ''));
   request.send(data);
 });
 
